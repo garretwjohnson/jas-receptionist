@@ -1,0 +1,61 @@
+# Demo business config — SYNTHETIC BUSINESS, not a real client.
+# One file like this per client is the whole per-client setup.
+id: desert-smiles-dental
+name: Desert Smiles Dental
+industry: dental
+greeting: >-
+  Thank you for calling Desert Smiles Dental, this is Ivy, the virtual
+  receptionist. How can I help you today?
+voice_persona: >-
+  Warm, efficient, professional. Keep every reply to one or two short
+  sentences — this is a phone call, not an essay. Never use bullet points
+  or emoji. Confirm names and phone numbers by repeating them back.
+
+hours:
+  monday: "8:00-17:00"
+  tuesday: "8:00-17:00"
+  wednesday: "8:00-17:00"
+  thursday: "8:00-17:00"
+  friday: "8:00-13:00"
+  saturday: closed
+  sunday: closed
+
+appointment_types:
+  - name: Cleaning & exam
+    minutes: 60
+  - name: New patient exam
+    minutes: 90
+  - name: Emergency / tooth pain
+    minutes: 30
+  - name: Whitening consult
+    minutes: 30
+
+faqs:
+  - q: Where are you located?
+    a: 4821 E Shea Blvd, Suite 120, Phoenix, near Tatum and Shea.
+  - q: Do you take my insurance?
+    a: >-
+      We accept Delta Dental, Cigna, MetLife, Aetna, and most PPO plans.
+      We do not accept AHCCCS. For anything else, take their carrier name
+      and a callback number so the office can confirm.
+  - q: How much is a cleaning without insurance?
+    a: A cleaning and exam is $129 for new patients, including x-rays.
+  - q: Do you see kids?
+    a: Yes, ages 5 and up.
+  - q: Do you do same-day emergency visits?
+    a: >-
+      Yes — we hold emergency slots each weekday. If the caller is in severe
+      pain, book the earliest emergency slot available.
+
+escalation:
+  # Situations the AI must NOT handle itself
+  transfer_when:
+    - Caller is in severe distress or a medical emergency (tell them to call 911)
+    - Caller asks for billing disputes or refunds
+    - Caller explicitly demands a human
+  transfer_message: >-
+    I'll have someone from the office call you right back. Can I confirm
+    the best number to reach you?
+
+sms_confirmations: true   # phase 2 — Twilio SMS
+timezone: America/Phoenix

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office View — JAS Receptionist</title>
+<style>
+  :root { --bg:#f4f6f9; --panel:#fff; --edge:#dde3ea; --ink:#1c2733; --dim:#68788c; --accent:#1f8f63; }
+  * { margin:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system, Segoe UI, sans-serif; padding:32px 20px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+  h1 { font-size:24px; margin:2px 0 20px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+  .card { background:var(--panel); border:1px solid var(--edge); border-radius:14px; padding:18px 20px; }
+  h2 { font-size:15px; margin-bottom:12px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { text-align:left; color:var(--dim); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--edge); }
+  td { padding:7px 8px; border-bottom:1px solid var(--edge); }
+  .pill { display:inline-block; background:#e7f5ee; color:var(--accent); border-radius:99px; padding:1px 9px; font-size:12px; font-weight:600; }
+  .urgent { background:#fdeaea; color:#c33; }
+  .empty { color:var(--dim); font-size:13.5px; padding:12px 0; }
+  .note { margin-top:16px; color:var(--dim); font-size:12.5px; }
+  .wide { grid-column: 1 / -1; }
+  .pill.low { background:#eef1f5; color:var(--dim); } .pill.high { background:#fdeaea; color:#c33; }
+  a.brief { color:var(--accent); text-decoration:none; font-weight:600; }
+  a.brief:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Johnson AI Solutions · AI Receptionist</div>
+  <h1 id="biz">Office view</h1>
+  <div class="grid">
+    <div class="card">
+      <h2>📅 Upcoming appointments <span class="pill" id="apptCount"></span></h2>
+      <table id="appts"><tr><th>When</th><th>Type</th><th>Patient</th><th>Phone</th></tr></table>
+      <div class="empty" id="apptEmpty" hidden>Nothing booked yet — make a call on the demo line.</div>
+    </div>
+    <div class="card">
+      <h2>📝 Messages for staff <span class="pill" id="msgCount"></span></h2>
+      <table id="msgs"><tr><th>From</th><th>Phone</th><th>Reason</th></tr></table>
+      <div class="empty" id="msgEmpty" hidden>No messages.</div>
+    </div>
+    <div class="card wide">
+      <h2>☎️ Recent callers <span class="pill" id="callerCount"></span></h2>
+      <table id="callers"><tr><th>Caller</th><th>Phone</th><th>Last call</th><th>Calls</th><th>Asked about</th><th>Interest</th><th>Next step</th><th></th></tr></table>
+      <div class="empty" id="callerEmpty" hidden>No callers on record yet — enter a caller number on the demo phone before pressing Call.</div>
+    </div>
+  </div>
+  <div class="note">Everything on this page was created by the AI during live calls — auto-refreshes every 5 seconds.</div>
+</div>
+<script>
+async function load() {
+  const d = await (await fetch('/api/office')).json();
+  document.getElementById('biz').textContent = d.business + ' — office view';
+  const at = document.getElementById('appts');
+  at.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  d.appointments.forEach(a => {
+    const w = new Date(a.start).toLocaleString([], {weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+    at.insertAdjacentHTML('beforeend',
+      `<tr><td>${w}</td><td>${a.type||''}</td><td>${a.name||''}</td><td>${a.phone||''}</td></tr>`);
+  });
+  document.getElementById('apptCount').textContent = d.appointments.length;
+  document.getElementById('apptEmpty').hidden = d.appointments.length > 0;
+  const mt = document.getElementById('msgs');
+  mt.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  d.messages.forEach(m => {
+    mt.insertAdjacentHTML('beforeend',
+      `<tr><td>${m.urgent ? '<span class="pill urgent">URGENT</span> ' : ''}${m.name||''}</td><td>${m.phone||''}</td><td>${m.reason||''}</td></tr>`);
+  });
+  document.getElementById('msgCount').textContent = d.messages.length;
+  document.getElementById('msgEmpty').hidden = d.messages.length > 0;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const ct = document.getElementById('callers');
+  ct.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+  (d.callers || []).forEach(c => {
+    const w = new Date(c.last_seen).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+    const name = (c.profile && c.profile.preferred_name) || c.name || '—';
+    ct.insertAdjacentHTML('beforeend',
+      `<tr><td>${esc(name)}</td><td>${esc(c.phone)}</td><td>${w}</td><td>${c.call_count}</td>` +
+      `<td>${esc(c.requested_service || '')}</td>` +
+      `<td>${c.interest ? `<span class="pill ${esc(c.interest)}">${esc(c.interest)}</span>` : ''}</td>` +
+      `<td>${esc(c.next_step || '')}</td>` +
+      `<td><a class="brief" href="/brief/${encodeURIComponent(c.phone)}" target="_blank">Brief →</a></td></tr>`);
+  });
+  document.getElementById('callerCount').textContent = (d.callers || []).length;
+  document.getElementById('callerEmpty').hidden = (d.callers || []).length > 0;
+}
+load(); setInterval(load, 5000);
+</script>
+</body>
+</html>
